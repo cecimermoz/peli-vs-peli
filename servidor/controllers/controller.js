@@ -4,9 +4,9 @@ const controller = {
     competencias: (req, res) => {
 
         connection.query(
-            'SELECT * FROM actor',
-            (error, results, fields) => {
-                res.json(results);
+            'SELECT * FROM competencias',
+            (error, competencias, fields) => {
+                res.json(competencias);
             }
         );
     }
