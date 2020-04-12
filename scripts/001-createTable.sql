@@ -3,9 +3,12 @@ CREATE TABLE competencias(
     nombre VARCHAR(50)
 );
 
-INSERT INTO competencias
-VALUES (
-(1, '¿Cuál es la mejor película?')
-(2, "¿Qué drama te hizo llorar más?");
-(3, "¿Cuál es la peli más bizarra?")
-);
+INSERT INTO competencias (nombre)
+VALUES
+    ("¿Cuál es la mejor película?"),
+    ("¿Qué drama te hizo llorar más?"),
+    ("¿Cuál es la peli más bizarra?"),
+    ("¿Qué película viste más vece?"),
+    ("¿Cuál es la peli más tonta?"),
+    ("¿Qué peli te asustó más?")
+;

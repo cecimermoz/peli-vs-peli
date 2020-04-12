@@ -5,10 +5,11 @@ const port = 3000;
 const controller = require('./controllers/controller');
 
 server.use(cors());
+server.use(express.json());
 
 server.get('/competencias', controller.getCompetencias);
 server.get('/competencias/:id/peliculas', controller.getPeliculaRandom);
-/* server.post('/competencias/:id/peliculas', controller.obtenerPeliculas); */
+server.post('/competencias/:id/voto', controller.getVoto); 
 
 server.listen(port, function(){
     console.log("Listening on port " + port);
