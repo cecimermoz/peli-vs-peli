@@ -36,7 +36,7 @@ const controller = {
         )
     },
 
-    getVoto: (req, res) => {
+    votar: (req, res) => {
     if (!req.params.id || isNaN(req.params.id)) return res.status(400).send('Competencia inválida');
     if (!req.body) return res.status(400).send('Body de la consulta inválido');
 
@@ -71,7 +71,7 @@ const controller = {
                                 
                                 if (error) console.error(error);
 
-                                res.status(201).send();
+                                res.status(201).json({message: 'ok'});
                             }
                         );
                     }
@@ -79,6 +79,40 @@ const controller = {
             }
         )
 
+    },
+
+    getVotodeCompetencia: (req, res) => {
+        if (!req.params.id || isNaN(req.params.id)) return res.status(400).send('Competencia inválida');
+
+        let idCompetencia = parseInt(req.params.id);
+
+        connection.query(
+            'SELECT * FROM competencias WHERE id = ?',
+            [idCompetencia],
+            (error, competencias, fields) => {
+                if (error) return console.error(error);
+                if (!competencias.length) return res.status(404).send("La competencia seleccionada no existe");
+
+                connection.query(
+                    'SELECT p.id, p.titulo, p.poster, votos.qty FROM ' +
+                        '(SELECT v.competencia_id, v.pelicula_id, SUM(1) qty ' +
+                        'FROM votos v  ' +
+                        'WHERE v.competencia_id = ? ' +
+                        'GROUP BY v.pelicula_id, v.competencia_id) votos ' +
+                    'JOIN pelicula p on pelicula_id = p.id;',
+                    [idCompetencia],
+                    (error, votos, fields) => {
+                        if (error) return console.error(error);
+
+                        res.json({
+                            competencia : competencias[0].nombre,
+                            resultados : votos
+                        })
+                    }
+                );
+
+            }
+        )
     }
 
 }
