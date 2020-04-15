@@ -99,7 +99,8 @@ const controller = {
                         'FROM votos v  ' +
                         'WHERE v.competencia_id = ? ' +
                         'GROUP BY v.pelicula_id, v.competencia_id) votos ' +
-                    'JOIN pelicula p on pelicula_id = p.id;',
+                    'JOIN pelicula p on pelicula_id = p.id ' +
+                    'ORDER BY votos.votos DESC LIMIT 3;',
                     [idCompetencia],
                     (error, votos, fields) => {
                         if (error) return console.error(error);
@@ -117,21 +118,58 @@ const controller = {
 
     createCompetencias: (req, res) => {
         if (!req.body) return res.status(400).send('Body de la consulta inválido');
+        if (req.body == "" || req.body == null || !isNaN(req.body)) return res.status(422).send("No ingresó un nombre válido");
 
         let competenciaNombre = req.body.nombre;
         
         connection.query(
-            'INSERT INTO competencias (nombre) VALUES ( ? );',
-            [competenciaNombre],
-            (error, nombre, fields) => {
+            'SELECT nombre FROM competencias',
+            (error, competencias, fields) => {
                 if (error) return console.error(error);
-                if (!nombre || nombre === "" || nombre == null) return res.status(404).send("La competencia seleccionada no existe");
-                res.status(201).json({message: 'ok'});
+                let competenciasExistentes = competencias;
+                competenciasExistentes.forEach(competencia => {
+                    if(competencia == competenciaNombre){
+                        return res.status(422).send('Esta competencia ya existe');
+                    }
+                });
+
+                connection.query(
+                    'INSERT INTO competencias (nombre) VALUES ( ? );',
+                    [competenciaNombre],
+                    (error, nombre, fields) => {
+                        if (error) return console.error(error);
+                        // estas validaciones no me funcionan
+                        res.status(201).json({message: 'Competencia creada'});
+                    }
+                )
+            }
+        );
+    },
+
+    deleteVotos: (req, res) => {
+        if (!req.params.id || isNaN(req.params.id)) return res.status(400).send('Competencia inválida');
+    
+            let idCompetencia = parseInt(req.params.id);
+    
+        connection.query(
+            'SELECT * FROM competencias WHERE id = ?',
+            [idCompetencia],
+            (error, competencia, fields) => {
+                if (error) return console.error(error);
+                if (competencia.length === 0) return res.status(404).send("La competencia seleccionada no existe");
+
+                connection.query(
+                    'DELETE FROM votos WHERE competencia_id = ?',
+                    [idCompetencia],
+                    (error, results, fields) => {
+                        if (error) return console.error(error);
+                        
+                        res.status(200).send();
+                    }
+                );
             }
         )
-
     }
-
 }
 
 module.exports = controller;
