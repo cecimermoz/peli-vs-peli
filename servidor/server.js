@@ -9,6 +9,7 @@ server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
 
 server.get('/competencias', controller.getCompetencias);
+server.post('/competencias', controller.createCompetencias);
 server.get('/competencias/:id/peliculas', controller.getPeliculaRandom);
 server.post('/competencias/:id/voto', controller.votar); 
 server.get('/competencias/:id/resultados', controller.getVotodeCompetencia);

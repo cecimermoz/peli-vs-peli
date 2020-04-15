@@ -94,8 +94,8 @@ const controller = {
                 if (!competencias.length) return res.status(404).send("La competencia seleccionada no existe");
 
                 connection.query(
-                    'SELECT p.id, p.titulo, p.poster, votos.qty FROM ' +
-                        '(SELECT v.competencia_id, v.pelicula_id, SUM(1) qty ' +
+                    'SELECT p.id, p.titulo, p.poster, votos.votos FROM ' +
+                        '(SELECT v.competencia_id, v.pelicula_id, SUM(1) votos ' +
                         'FROM votos v  ' +
                         'WHERE v.competencia_id = ? ' +
                         'GROUP BY v.pelicula_id, v.competencia_id) votos ' +
@@ -113,6 +113,23 @@ const controller = {
 
             }
         )
+    },
+
+    createCompetencias: (req, res) => {
+        if (!req.body) return res.status(400).send('Body de la consulta inválido');
+
+        let competenciaNombre = req.body.nombre;
+        
+        connection.query(
+            'INSERT INTO competencias (nombre) VALUES ( ? );',
+            [competenciaNombre],
+            (error, nombre, fields) => {
+                if (error) return console.error(error);
+                if (!nombre || nombre === "" || nombre == null) return res.status(404).send("La competencia seleccionada no existe");
+                res.status(201).json({message: 'ok'});
+            }
+        )
+
     }
 
 }
