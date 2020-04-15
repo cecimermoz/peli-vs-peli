@@ -12,6 +12,7 @@ const controller = {
 
     getPeliculaRandom: (req, res) => {
         let idCompetencia = parseInt(req.params.id);
+        let competenciaGenero = req.params.genero;
 
         connection.query(
             'SELECT * FROM competencias WHERE id = ?',
@@ -20,15 +21,29 @@ const controller = {
                 if (error) return console.error(error);
                 if (!competencias.length) return res.status(404).send();
 
-                let competencia = competencias[0].nombre;
+                let competencia = competencias[0];
+                let sqlPeliculas = 'SELECT * FROM pelicula ORDER BY RAND() LIMIT 2';
+                let sqlParams = []
 
+                if(competencia.genero_id){
+                    sqlPeliculas = 'SELECT * FROM pelicula WHERE genero_id = ? ORDER BY RAND() LIMIT 2';
+                    sqlParams.push(competencia.genero_id);
+                }
+
+                console.log(sqlParams);
+                console.log(sqlPeliculas);
+                
                 connection.query(
-                    'SELECT * FROM pelicula ORDER BY RAND() LIMIT 2',
+                    sqlPeliculas,
+                    sqlParams,
                     (error, peliculas, fields) => {
                         if (error) return console.error(error);
                         if (!peliculas.length) return res.status(404).send();
 
-                        res.json( { competencia, peliculas } );
+                        res.json({ 
+                            competencia: competencia.nombre, 
+                            peliculas: peliculas 
+                        });
                     }
                 )
 
@@ -121,6 +136,7 @@ const controller = {
         if (req.body == "" || req.body == null || !isNaN(req.body)) return res.status(422).send("No ingresó un nombre válido");
 
         let competenciaNombre = req.body.nombre;
+        let generoCompetencia = req.body.genero;
         
         connection.query(
             'SELECT nombre FROM competencias',
@@ -134,8 +150,8 @@ const controller = {
                 });
 
                 connection.query(
-                    'INSERT INTO competencias (nombre) VALUES ( ? );',
-                    [competenciaNombre],
+                    'INSERT INTO competencias (nombre, genero_id) VALUES (?, ?);',
+                    [competenciaNombre, generoCompetencia],
                     (error, nombre, fields) => {
                         if (error) return console.error(error);
                         // estas validaciones no me funcionan
@@ -169,6 +185,16 @@ const controller = {
                 );
             }
         )
+    },
+
+    getAllGeneros: (req, res) => {
+        connection.query(
+            'SELECT * FROM genero;',
+            (error, generos, fields) => {
+                if(error) return console.error(error);
+                res.json(generos);
+            }
+        );
     }
 }
 

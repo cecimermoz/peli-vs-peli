@@ -14,6 +14,7 @@ server.get('/competencias/:id/peliculas', controller.getPeliculaRandom);
 server.post('/competencias/:id/voto', controller.votar); 
 server.delete('/competencias/:id/voto', controller.deleteVotos); 
 server.get('/competencias/:id/resultados', controller.getVotodeCompetencia);
+server.get('/generos', controller.getAllGeneros);
 
 server.listen(port, function(){
     console.log("Listening on port " + port);
