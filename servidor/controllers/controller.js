@@ -12,7 +12,6 @@ const controller = {
 
     getPeliculaRandom: (req, res) => {
         let idCompetencia = parseInt(req.params.id);
-        let competenciaGenero = req.params.genero;
 
         connection.query(
             'SELECT * FROM competencias WHERE id = ?',
@@ -22,17 +21,38 @@ const controller = {
                 if (!competencias.length) return res.status(404).send();
 
                 let competencia = competencias[0];
-                let sqlPeliculas = 'SELECT * FROM pelicula ORDER BY RAND() LIMIT 2';
+                let sqlPeliculas = 'SELECT * FROM pelicula ';
                 let sqlParams = []
 
                 if(competencia.genero_id){
-                    sqlPeliculas = 'SELECT * FROM pelicula WHERE genero_id = ? ORDER BY RAND() LIMIT 2';
+                    sqlPeliculas += ' WHERE genero_id = ? ';
                     sqlParams.push(competencia.genero_id);
+                    if(competencia.director_id){
+                        sqlPeliculas = 'SELECT * FROM pelicula p JOIN director_pelicula d on p.id = d.pelicula_id WHERE p.genero_id = ? ';
+
+                    }
+
                 }
 
+                if(competencia.director_id){
+                    sqlPeliculas = 'SELECT * FROM pelicula p JOIN director_pelicula d on p.id = d.pelicula_id WHERE d.director_id = ? ';
+                    sqlParams.push(competencia.director_id);
+                }
+
+                if(competencia.actor_id){
+                    if(sqlParams){
+                        sqlPeliculas += ' AND ';
+                    } else {
+                        sqlPeliculas += ' WHERE ';
+                    }
+                    sqlPeliculas += ' actor_id = ? ';
+                    sqlParams.push(competencia.actor_id);
+                }
+
+                sqlPeliculas += ' ORDER BY RAND() LIMIT 2';
                 console.log(sqlParams);
                 console.log(sqlPeliculas);
-                
+
                 connection.query(
                     sqlPeliculas,
                     sqlParams,
@@ -137,21 +157,26 @@ const controller = {
 
         let competenciaNombre = req.body.nombre;
         let generoCompetencia = req.body.genero;
+        let directorCompetencia = req.body.director;
+        let actorCompetencia = req.body.actor;
         
+        if(generoCompetencia == 0) { generoCompetencia = null };
+        if(directorCompetencia == 0) { directorCompetencia = null };
+        if(actorCompetencia == 0) { actorCompetencia = null };
+
         connection.query(
             'SELECT nombre FROM competencias',
             (error, competencias, fields) => {
                 if (error) return console.error(error);
-                let competenciasExistentes = competencias;
-                competenciasExistentes.forEach(competencia => {
+                competencias.forEach(competencia => {
                     if(competencia == competenciaNombre){
                         return res.status(422).send('Esta competencia ya existe');
                     }
                 });
 
                 connection.query(
-                    'INSERT INTO competencias (nombre, genero_id) VALUES (?, ?);',
-                    [competenciaNombre, generoCompetencia],
+                    'INSERT INTO competencias (nombre, genero_id, director_id, actor_id) VALUES (?, ?, ?, ?);',
+                    [competenciaNombre, generoCompetencia, directorCompetencia, actorCompetencia],
                     (error, nombre, fields) => {
                         if (error) return console.error(error);
                         // estas validaciones no me funcionan
@@ -195,7 +220,78 @@ const controller = {
                 res.json(generos);
             }
         );
-    }
+    },
+
+    getAllDirectores: (req, res) => {
+        connection.query(
+            'SELECT * FROM director;',
+            (error, director, fields) => {
+                if(error) return console.error(error);
+                res.json(director);
+            }
+        );
+    },
+
+    getAllActores: (req, res) => {
+        connection.query(
+            'SELECT * FROM actor;',
+            (error, actor, fields) => {
+                if(error) return console.error(error);
+                res.json(actor);
+            }
+        );
+    },
+
+    deleteCompetencias: (req, res) => {
+        if (!req.params.id || isNaN(req.params.id)) return res.status(400).send('Competencia inválida');
+    
+        let idCompetencia = parseInt(req.params.id);
+    
+        connection.query(
+            'SELECT * FROM competencias WHERE id = ?',
+            [idCompetencia],
+            (error, competencia, fields) => {
+                if (error) return console.error(error);
+                if (competencia.length === 0) return res.status(404).send("La competencia seleccionada no existe");
+
+                connection.query(
+                    'DELETE FROM competencias WHERE id = ?',
+                    [idCompetencia],
+                    (error, results, fields) => {
+                        if (error) return console.error(error);
+                        
+                        res.status(200).send();
+                    }
+                );
+            }
+        )
+    },
+
+    editCompetencias: (req, res) => {
+        if (!req.params.id || isNaN(req.params.id)) return res.status(400).send('Competencia inválida');
+    
+        let idCompetencia = parseInt(req.params.id);
+        let nuevoNombre = req.body.nombre;
+    
+        connection.query(
+            'SELECT * FROM competencias WHERE id = ?',
+            [idCompetencia],
+            (error, competencia, fields) => {
+                if (error) return console.error(error);
+                if (competencia.length === 0) return res.status(404).send("La competencia seleccionada no existe");
+
+                connection.query(
+                    'UPDATE competencias SET nombre = ? WHERE id = ?',
+                    [nuevoNombre, idCompetencia],
+                    (error, results, fields) => {
+                        if (error) return console.error(error);
+                        
+                        res.status(200).send();
+                    }
+                );
+            }
+        )
+    },
 }
 
 module.exports = controller;

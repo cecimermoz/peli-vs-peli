@@ -26,3 +26,15 @@ ADD COLUMN genero_id INT UNSIGNED;
 
 ALTER TABLE competencias
 ADD FOREIGN KEY (genero_id) REFERENCES genero(id);
+
+ALTER TABLE competencias 
+ADD COLUMN director_id INT UNSIGNED;
+
+ALTER TABLE competencias
+ADD FOREIGN KEY (director_id) REFERENCES director(id);
+
+ALTER TABLE competencias 
+ADD COLUMN actor_id INT UNSIGNED;
+
+ALTER TABLE competencias
+ADD FOREIGN KEY (actor_id) REFERENCES actor(id);
