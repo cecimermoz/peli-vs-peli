@@ -21,21 +21,23 @@ const controller = {
                 if (!competencias.length) return res.status(404).send();
 
                 let competencia = competencias[0];
-                let sqlPeliculas = 'SELECT * FROM pelicula ';
+                let sqlPeliculas = 'SELECT p.id, p.poster, p.titulo FROM pelicula p ' + 
+                'JOIN director_pelicula dp ON dp.pelicula_id = p.id ' + 
+                'JOIN actor_pelicula ap ON ap.pelicula_id = p.id ';
                 let sqlParams = []
 
                 if(competencia.genero_id){
-                    sqlPeliculas += ' WHERE genero_id = ? ';
+                    sqlPeliculas += ' WHERE p.genero_id = ? ';
                     sqlParams.push(competencia.genero_id);
-                    if(competencia.director_id){
-                        sqlPeliculas = 'SELECT * FROM pelicula p JOIN director_pelicula d on p.id = d.pelicula_id WHERE p.genero_id = ? ';
-
-                    }
-
                 }
 
                 if(competencia.director_id){
-                    sqlPeliculas = 'SELECT * FROM pelicula p JOIN director_pelicula d on p.id = d.pelicula_id WHERE d.director_id = ? ';
+                    if(sqlParams.length > 0){
+                        sqlPeliculas += ' AND ';
+                    } else {
+                        sqlPeliculas += ' WHERE ';
+                    }
+                    sqlPeliculas = ' dp.director_id = ? ';
                     sqlParams.push(competencia.director_id);
                 }
 
@@ -45,7 +47,7 @@ const controller = {
                     } else {
                         sqlPeliculas += ' WHERE ';
                     }
-                    sqlPeliculas += ' actor_id = ? ';
+                    sqlPeliculas += ' ap.actor_id = ? ';
                     sqlParams.push(competencia.actor_id);
                 }
 
@@ -153,34 +155,90 @@ const controller = {
 
     createCompetencias: (req, res) => {
         if (!req.body) return res.status(400).send('Body de la consulta inválido');
-        if (req.body == "" || req.body == null || !isNaN(req.body)) return res.status(422).send("No ingresó un nombre válido");
 
         let competenciaNombre = req.body.nombre;
-        let generoCompetencia = req.body.genero;
-        let directorCompetencia = req.body.director;
-        let actorCompetencia = req.body.actor;
-        
-        if(generoCompetencia == 0) { generoCompetencia = null };
-        if(directorCompetencia == 0) { directorCompetencia = null };
-        if(actorCompetencia == 0) { actorCompetencia = null };
+        if (!competenciaNombre) return res.status(400).send("El nombre de la competencia es obligatorio");
 
         connection.query(
             'SELECT nombre FROM competencias',
             (error, competencias, fields) => {
-                if (error) return console.error(error);
-                competencias.forEach(competencia => {
-                    if(competencia == competenciaNombre){
-                        return res.status(422).send('Esta competencia ya existe');
-                    }
-                });
+                if (error) return console.error(error);/* 
+                if (competencias.length > 0) return res.status(422).send("Esa competencia ya esxiste"); */
 
+                let generoCompetencia = req.body.genero;
+                let directorCompetencia = req.body.director;
+                let actorCompetencia = req.body.actor;
+                let insertQuery = "INSERT INTO competencias "
+                let insertParams = [];
+                let selectQuery = "SELECT COUNT(1) cantidad_peliculas FROM pelicula p " +
+                "JOIN actor_pelicula ap ON ap.pelicula_id = p.id " + 
+                "JOIN director_pelicula dp ON dp.pelicula_id = p.id ";
+                let selectParams = [];
+
+
+                if(generoCompetencia == 0 && actorCompetencia && directorCompetencia){
+                    insertQuery += "(nombre, genero_id, director_id, actor_id) VALUES (?, ?, ?, ?);";
+                    insertParams.push(competenciaNombre, generoCompetencia, directorCompetencia, actorCompetencia);
+                    selectQuery += " WHERE ap.actor_id = ? AND dp.director_id = ?";
+                    selectParams.push(actorCompetencia, directorCompetencia);
+                } 
+                else if (generoCompetencia != 0 && actorCompetencia == 0 && directorCompetencia != 0) {
+                    insertQuery += "(nombre, genero_id, director_id) VALUES (?, ?, ?);";
+                    insertParams.push(competenciaNombre, generoCompetencia, directorCompetencia);
+                    selectQuery += " WHERE p.genero_id = ? AND dp.director_id = ?";
+                    selectParams.push(generoCompetencia, directorCompetencia);
+                }
+                else if(generoCompetencia != 0 && actorCompetencia != 0 && directorCompetencia == 0){
+                    insertQuery += "(nombre, genero_id, actor_id) VALUES (?, ?, ?);";
+                    insertParams.push(competenciaNombre, generoCompetencia, actorCompetencia);
+                    selectQuery += " WHERE p.genero_id = ? AND ap.actor_id = ?";
+                    selectParams.push(generoCompetencia, actorCompetencia);
+                }
+                else if(generoCompetencia == 0 && actorCompetencia == 0 && directorCompetencia != 0){
+                    insertQuery += "(nombre, director_id) VALUES (?, ?);";
+                    insertParams.push(competenciaNombre, directorCompetencia);
+                    selectQuery += " WHERE dp.director_id = ?";
+                    selectParams.push(directorCompetencia);
+                }
+                else if(generoCompetencia == 0 && actorCompetencia != 0 && directorCompetencia == 0){
+                    insertQuery += "(nombre, actor_id) VALUES (?, ?);";
+                    insertParams.push(competenciaNombre, actorCompetencia);
+                    selectQuery += " WHERE ap.actor_id = ?";
+                    selectParams.push(actorCompetencia);
+                }
+                else if(generoCompetencia != 0 && actorCompetencia == 0 && directorCompetencia == 0){
+                    insertQuery += "(nombre, genero_id) VALUES (?, ?);";
+                    insertParams.push(competenciaNombre, generoCompetencia);
+                    selectQuery += " WHERE p.genero_id = ?";
+                    selectParams.push(generoCompetencia);
+
+                }
+                else if(generoCompetencia && actorCompetencia && directorCompetencia){
+                    insertQuery += "(nombre, genero_id, director_id, actor_id) VALUES (?, ?, ?, ?);";
+                    insertParams.push(competenciaNombre, generoCompetencia, directorCompetencia, actorCompetencia);
+                    selectQuery += " WHERE p.genero_id = ? AND ap.actor_id = ? AND dp.director_id = ?";
+                    selectParams.push(generoCompetencia, actorCompetencia, directorCompetencia);
+                } 
+
+                console.log(insertParams);
+                console.log(insertQuery);
+                console.log(selectParams);
+                console.log(selectQuery);
                 connection.query(
-                    'INSERT INTO competencias (nombre, genero_id, director_id, actor_id) VALUES (?, ?, ?, ?);',
-                    [competenciaNombre, generoCompetencia, directorCompetencia, actorCompetencia],
-                    (error, nombre, fields) => {
+                    selectQuery,
+                    selectParams,
+                    (error, results, fields) => {
                         if (error) return console.error(error);
-                        // estas validaciones no me funcionan
-                        res.status(201).json({message: 'Competencia creada'});
+                        if (results[0].cantidad_peliculas < 2) return res.status(400).json("No hay dos películas que cumplan esos parámetros");
+
+                        connection.query(
+                            insertQuery,
+                            insertParams,
+                            (error, results, fields) => {
+                                if(error) return console.error(error);
+                                res.json(results);
+                            }
+                        );
                     }
                 )
             }
