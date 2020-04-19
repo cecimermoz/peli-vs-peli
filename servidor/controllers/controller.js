@@ -21,7 +21,7 @@ const controller = {
                 if (!competencias.length) return res.status(404).send();
 
                 let competencia = competencias[0];
-                let sqlPeliculas = 'SELECT p.id, p.poster, p.titulo FROM pelicula p ' + 
+                let sqlPeliculas = 'SELECT * FROM pelicula p ' + 
                 'JOIN director_pelicula dp ON dp.pelicula_id = p.id ' + 
                 'JOIN actor_pelicula ap ON ap.pelicula_id = p.id ';
                 let sqlParams = []
@@ -29,31 +29,35 @@ const controller = {
                 if(competencia.genero_id){
                     sqlPeliculas += ' WHERE p.genero_id = ? ';
                     sqlParams.push(competencia.genero_id);
+
                 }
 
                 if(competencia.director_id){
-                    if(sqlParams.length > 0){
+                    if(sqlParams.length){
                         sqlPeliculas += ' AND ';
                     } else {
                         sqlPeliculas += ' WHERE ';
                     }
-                    sqlPeliculas = ' dp.director_id = ? ';
+                    sqlPeliculas += ' dp.director_id = ? ';
                     sqlParams.push(competencia.director_id);
+
                 }
 
                 if(competencia.actor_id){
-                    if(sqlParams){
+                    if(sqlParams.length){
                         sqlPeliculas += ' AND ';
                     } else {
                         sqlPeliculas += ' WHERE ';
                     }
-                    sqlPeliculas += ' ap.actor_id = ? ';
+                    sqlPeliculas += ' ap.actor_id =  ?';
                     sqlParams.push(competencia.actor_id);
+
                 }
 
                 sqlPeliculas += ' ORDER BY RAND() LIMIT 2';
-                console.log(sqlParams);
                 console.log(sqlPeliculas);
+                console.log(sqlParams);
+
 
                 connection.query(
                     sqlPeliculas,
